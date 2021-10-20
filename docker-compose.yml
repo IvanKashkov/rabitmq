@@ -1,0 +1,119 @@
+version: '3.4'
+
+services:
+  rabbitmq:
+    image: masstransit/rabbitmq:latest
+    environment:
+      RABBITMQ_DEFAULT_USER: 'admin'
+      RABBITMQ_DEFAULT_PASS: 'admin'
+    ports:
+     - "5672:5672"
+     - "15672:15672"
+     - "15692:15692"
+    networks:
+     - elastic
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    configs:
+      - source: elastic_config
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: changeme
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      - elastic
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    configs:
+      - source: logstash_config
+        target: /usr/share/logstash/config/logstash.yml
+      - source: logstash_pipeline
+        target: /usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elastic
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    ports:
+      - "5601:5601"
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    networks:
+      - elastic
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  consumer:
+    image: ${DOCKER_REGISTRY-}consumer
+    build:
+      context: .
+      dockerfile: First/Consumer/Dockerfile
+    ports:
+      - "5002:80"
+      - "5502:443"
+    networks:
+      - elastic
+    depends_on:
+      - elasticsearch
+      - rabbitmq
+
+  producer:
+    image: ${DOCKER_REGISTRY-}producer
+    build:
+      context: .
+      dockerfile: First/Producer/Dockerfile
+    ports:
+      - "5001:80"
+      - "5501:443"
+    networks:
+      - elastic
+    depends_on:
+      - elasticsearch
+      - rabbitmq
+        
+
+volumes:
+  elasticdata:
+    driver: local
+
+configs:
+  elastic_config:
+    file: ./configs/elasticsearch/elasticsearch.yml
+  logstash_config:
+    file: ./configs/logstash/config/logstash.yml
+  logstash_pipeline:
+    file: ./configs/logstash/pipeline/logstash.conf
+  kibana_config:
+    file: ./configs/kibana/kibana.yml
+
+networks:
+  elastic:
+    driver: bridge
+
+
+
+
