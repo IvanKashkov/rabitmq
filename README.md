@@ -1,7 +1,10 @@
-# rabittmq
 
-Rabit MQ examples:
+# Rabit MQ examples:
 
-FIRST (folder):
+# FIRST:
+
 Description: Producer + Consumer + Fanout exchanges + Message Queues per message type (event type).
+
 Technologies: .NET 5, MassTransit, ElasticSearch, Kibana, Docker, Docker-Compose
+
+Location: First folder
