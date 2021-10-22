@@ -5,6 +5,6 @@
 
 Description: Producer + Consumer + Fanout exchanges + Message Queues per message type (event type).
 
-Technologies: .NET 5, MassTransit, ElasticSearch, Kibana, Docker, Docker-Compose
+Technologies: .NET 5, MassTransit, ElasticSearch, Kibana, Docker, Docker-Compose, Serilog.
 
 Location: First folder
